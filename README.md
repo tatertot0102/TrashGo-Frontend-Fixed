@@ -1,5 +1,7 @@
 # TrashBot Dashboard
 
+Created by Zane Wolf
+
 ### How to Run:
 ```bash
 npm install
