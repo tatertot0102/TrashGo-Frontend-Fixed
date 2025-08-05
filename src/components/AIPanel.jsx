@@ -1,69 +1,105 @@
 import React, { useState, useEffect } from "react";
-import { Brain, Eye } from "lucide-react";
+import { Brain, Eye, ToggleRight, ToggleLeft } from "lucide-react";
+
+const mockClasses = ["Plastic Bottle", "Can", "Paper", "Cardboard", "Unknown"];
 
 export default function AIPanel() {
-  const [aiEnabled, setAiEnabled] = useState(false);
-  const [confidence, setConfidence] = useState(0.7);
-  const [detections, setDetections] = useState([]);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [autoSort, setAutoSort] = useState(false);
+  const [currentDetection, setCurrentDetection] = useState(null);
+  const [stats, setStats] = useState({ recycling: 0, landfill: 0, total: 0 });
 
-  useEffect(() => {
-    if (aiEnabled) {
-      const interval = setInterval(() => {
-        const classes = ["Recycling", "Landfill", "Not Trash"];
-        const randomClass = classes[Math.floor(Math.random() * classes.length)];
-        setDetections((prev) => [
-          { id: Date.now(), label: randomClass, confidence: (Math.random() * 0.3 + 0.6).toFixed(2) },
-          ...prev.slice(0, 4)
-        ]);
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [aiEnabled]);
+  // Simulate detections when AI is on
+  useEffect(() => {
+    let interval;
+    if (aiEnabled) {
+      interval = setInterval(() => {
+        const detectedClass = mockClasses[Math.floor(Math.random() * mockClasses.length)];
+        const confidence = (Math.random() * 0.4 + 0.6).toFixed(2); // 60-100%
+        setCurrentDetection({ class: detectedClass, confidence });
+        setStats((prev) => ({
+          recycling: prev.recycling + (detectedClass === "Plastic Bottle" || detectedClass === "Can" ? 1 : 0),
+          landfill: prev.landfill + (detectedClass === "Unknown" ? 1 : 0),
+          total: prev.total + 1,
+        }));
+      }, 3000);
+    } else {
+      setCurrentDetection(null);
+    }
+    return () => clearInterval(interval);
+  }, [aiEnabled]);
 
-  return (
-    <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold flex items-center">
-          <Brain className="mr-2" size={20} /> AI Vision
-        </h3>
-        <button
-          onClick={() => setAiEnabled(!aiEnabled)}
-          className={`px-3 py-1 rounded ${aiEnabled ? "bg-green-600" : "bg-slate-600"}`}
-        >
-          {aiEnabled ? "ON" : "OFF"}
-        </button>
-      </div>
+  return (
+    <div className="bg-slate-800 p-4 rounded-lg shadow-md text-white">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <Brain className="text-blue-400" size={20} />
+          <h2 className="text-lg font-bold">AI Vision</h2>
+        </div>
+        <button
+          onClick={() => setAiEnabled(!aiEnabled)}
+          className="flex items-center text-sm px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 transition"
+        >
+          {aiEnabled ? (
+            <>
+              <ToggleRight className="text-green-400 mr-1" size={18} /> ON
+            </>
+          ) : (
+            <>
+              <ToggleLeft className="text-gray-400 mr-1" size={18} /> OFF
+            </>
+          )}
+        </button>
+      </div>
 
-      {/* Confidence Slider */}
-      <div className="mb-4">
-        <label className="block text-sm mb-1">Confidence Threshold: {Math.round(confidence * 100)}%</label>
-        <input
-          type="range"
-          min="0.5"
-          max="0.95"
-          step="0.05"
-          value={confidence}
-          onChange={(e) => setConfidence(parseFloat(e.target.value))}
-          className="w-full"
-        />
-      </div>
+      {/* Current Detection */}
+      {aiEnabled ? (
+        <>
+          {currentDetection ? (
+            <div className="mb-4">
+              <p className="text-sm text-gray-300">Current Detection:</p>
+              <p className="text-lg font-bold">{currentDetection.class}</p>
+              <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+                <div
+                  className="h-2 rounded-full bg-green-500 transition-all duration-300"
+                  style={{ width: `${currentDetection.confidence * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Confidence: {(currentDetection.confidence * 100).toFixed(0)}%
+              </p>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">Scanning...</p>
+          )}
 
-      {/* Detection History */}
-      <h4 className="text-sm font-semibold mb-2 flex items-center">
-        <Eye size={16} className="mr-1" /> Recent Detections
-      </h4>
-      <ul className="space-y-1 text-sm">
-        {detections.length > 0 ? (
-          detections.map((d) => (
-            <li key={d.id} className="flex justify-between border-b border-slate-700 pb-1">
-              <span>{d.label}</span>
-              <span>{Math.round(d.confidence * 100)}%</span>
-            </li>
-          ))
-        ) : (
-          <p className="text-gray-400">No detections yet.</p>
-        )}
-      </ul>
-    </div>
-  );
+          {/* Auto-Sort */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm">Auto-Sort:</span>
+            <button
+              onClick={() => setAutoSort(!autoSort)}
+              className={`w-12 h-6 rounded-full transition-colors ${
+                autoSort ? "bg-green-500" : "bg-gray-600"
+              } flex items-center p-1`}
+            >
+              <div
+                className={`bg-white w-4 h-4 rounded-full shadow transform transition-transform ${
+                  autoSort ? "translate-x-6" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="border-t border-gray-600 pt-3 text-sm">
+            <p>Recycling: {stats.recycling}</p>
+            <p>Landfill: {stats.landfill}</p>
+            <p className="text-blue-400 font-bold">Total Processed: {stats.total}</p>
+          </div>
+        </>
+      ) : (
+        <p className="text-gray-500 text-sm italic">AI Vision Disabled</p>
+      )}
+    </div>
+  );
 }

@@ -1,91 +1,91 @@
 import React from "react";
+import { Battery, Trash2, AlertTriangle, Circle } from "lucide-react";
 
-export default function StatusPanel({
+const StatusPanel = ({
   isConnected,
-  robotIP,
-  setRobotIP,
-  robotPort,
-  setRobotPort,
-  connectToRobot,
-  disconnectRobot,
-  controllerConnected,
-  lastCommand,
-}) {
-  return (
-    <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
-      <h3 className="text-lg font-semibold mb-4">System Status</h3>
+  robotName,
+  currentTask,
+  rampPosition,
+  emergencyActive,
+  batteryLevel,
+  binLevel
+}) => {
+  const batteryColor =
+    batteryLevel > 50 ? "text-green-400" : batteryLevel > 25 ? "text-yellow-400" : "text-red-500";
 
-      {/* Robot Connection */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <span>Robot Connection</span>
+  const binColor =
+    binLevel < 70 ? "text-green-400" : binLevel < 90 ? "text-yellow-400" : "text-red-500";
+
+  return (
+    <div className="bg-gray-900 text-white p-4 flex justify-between items-center shadow-lg border-b border-gray-700">
+      {/* Left Side: Connection + Name */}
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center">
+          <Circle
+            className={`${
+              isConnected ? "text-green-500 animate-pulse" : "text-red-500 animate-pulse"
+            }`}
+            size={14}
+            fill={isConnected ? "green" : "red"}
+          />
           <span
-            className={`font-bold ${
+            className={`ml-2 font-bold text-lg transition-colors duration-500 ${
               isConnected ? "text-green-400" : "text-red-400"
             }`}
           >
             {isConnected ? "Connected" : "Disconnected"}
           </span>
         </div>
+        <span className="text-gray-400 text-sm">| Robot:</span>
+        <span className="font-semibold">{robotName}</span>
+      </div>
 
-        {/* Controller Connection */}
-        <div className="flex justify-between items-center">
-          <span>Controller</span>
+      {/* Middle: Task */}
+      <div className="hidden md:flex items-center space-x-6">
+        <div>
+          <span className="text-gray-400 text-sm">Task:</span>{" "}
           <span
-            className={`font-bold ${
-              controllerConnected ? "text-green-400" : "text-red-400"
+            className="font-semibold text-blue-400 transition-all duration-500"
+            key={currentTask} // re-render for animation
+          >
+            {currentTask}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400 text-sm">Ramp:</span>{" "}
+          <span
+            className={`font-bold transition-colors duration-500 ${
+              rampPosition === "down" ? "text-green-400" : "text-blue-400"
             }`}
           >
-            {controllerConnected ? "Connected" : "Not Detected"}
-          </span>
-        </div>
-
-        {/* Last Command */}
-        <div className="flex justify-between items-center">
-          <span>Last Command</span>
-          <span className="text-blue-400 font-bold">
-            {lastCommand || "None"}
+            {rampPosition.toUpperCase()}
           </span>
         </div>
       </div>
 
-      {/* Connection Settings */}
-      <div className="mt-6">
-        <h4 className="text-sm font-semibold mb-2">Connection Settings</h4>
-        <div className="space-y-2">
-          <input
-            type="text"
-            value={robotIP}
-            onChange={(e) => setRobotIP(e.target.value)}
-            className="w-full px-3 py-2 rounded bg-slate-700 text-white"
-            placeholder="Robot IP"
-          />
-          <input
-            type="text"
-            value={robotPort}
-            onChange={(e) => setRobotPort(e.target.value)}
-            className="w-full px-3 py-2 rounded bg-slate-700 text-white"
-            placeholder="Port"
-          />
+      {/* Right: System Indicators */}
+      <div className="flex items-center space-x-6">
+        {/* Battery */}
+        <div className="flex items-center">
+          <Battery size={18} className={`${batteryColor} mr-1`} />
+          <span className={`text-sm ${batteryColor}`}>{batteryLevel}%</span>
         </div>
-        <div className="flex gap-2 mt-4">
-          {!isConnected ? (
-            <button
-              onClick={connectToRobot}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
-            >
-              Connect
-            </button>
-          ) : (
-            <button
-              onClick={disconnectRobot}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded"
-            >
-              Disconnect
-            </button>
-          )}
+        {/* Bin */}
+        <div className="flex items-center">
+          <Trash2 size={18} className={`${binColor} mr-1`} />
+          <span className={`text-sm ${binColor}`}>{binLevel}%</span>
         </div>
       </div>
+
+      {/* Emergency Alert */}
+      {emergencyActive && (
+        <div className="absolute top-0 left-0 w-full bg-red-700 text-white text-center py-2 animate-pulse font-bold">
+          <AlertTriangle className="inline-block mr-2" size={18} />
+          EMERGENCY STOP ACTIVATED
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default StatusPanel;

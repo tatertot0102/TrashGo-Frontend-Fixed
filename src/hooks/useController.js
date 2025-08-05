@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 export default function useController(onAction) {
   const [controllerState, setControllerState] = useState({ buttons: [], axes: [] });
   const rafRef = useRef(null);
+  const prevPressed = useRef({});
+  const lastMovementTime = useRef(0);
+  const prevMovement = useRef("");
 
   useEffect(() => {
     const loop = () => {
@@ -10,25 +13,61 @@ export default function useController(onAction) {
       if (gp) {
         setControllerState({ buttons: gp.buttons, axes: gp.axes });
 
-        let command = null;
+        const now = Date.now();
 
-        // Movement with D-Pad
-        if (gp.buttons[12].pressed) command = "move_forward";   // Up
-        else if (gp.buttons[13].pressed) command = "move_backward"; // Down
-        else if (gp.buttons[14].pressed) command = "turn_left"; // Left
-        else if (gp.buttons[15].pressed) command = "turn_right"; // Right
+        // D-Pad buttons
+        const dpadUp = gp.buttons[12]?.pressed;
+        const dpadDown = gp.buttons[13]?.pressed;
+        const dpadLeft = gp.buttons[14]?.pressed;
+        const dpadRight = gp.buttons[15]?.pressed;
 
-        // Ramp & Pickup
-        else if (gp.buttons[0].pressed) command = "lower_ramp"; // X
-        else if (gp.buttons[1].pressed) command = "raise_ramp"; // O
-        else if (gp.buttons[2].pressed) command = "pickup_trash_sequence"; // Square
-        else if (gp.buttons[3].pressed) command = "stop_motors"; // Triangle
+        const x = gp.buttons[0]?.pressed;
+        const circle = gp.buttons[1]?.pressed;
+        const square = gp.buttons[2]?.pressed;
+        const triangle = gp.buttons[3]?.pressed;
+        const l2 = gp.buttons[6]?.pressed;
+        const r2 = gp.buttons[7]?.pressed;
 
-        // Emergency Stop
-        else if (gp.buttons[6].pressed && gp.buttons[7].pressed) command = "emergency_stop";
+        // ✅ Movement: throttle to every 150ms
+        let currentMovement = "";
+        if (dpadUp) currentMovement = "move_forward";
+        else if (dpadDown) currentMovement = "move_backward";
+        else if (dpadLeft) currentMovement = "turn_left";
+        else if (dpadRight) currentMovement = "turn_right";
+        else currentMovement = "";
 
-        if (command) onAction(command);
+        if (currentMovement) {
+          if (currentMovement !== prevMovement.current || now - lastMovementTime.current > 150) {
+            onAction(currentMovement);
+            lastMovementTime.current = now;
+            prevMovement.current = currentMovement;
+          }
+        } else if (prevMovement.current !== "") {
+          onAction("stop_motors");
+          prevMovement.current = "";
+        }
+
+        // ✅ Debounce for single-action buttons
+        const triggerOnPress = (name, pressed, cmd) => {
+          if (pressed && !prevPressed.current[name]) {
+            onAction(cmd);
+          }
+          prevPressed.current[name] = pressed;
+        };
+
+        triggerOnPress("x", x, "lower_ramp");
+        triggerOnPress("circle", circle, "raise_ramp");
+        triggerOnPress("square", square, "pickup_trash_sequence");
+        triggerOnPress("triangle", triangle, "stop_motors");
+
+        // ✅ Emergency stop
+        if (l2 && r2 && !(prevPressed.current.l2 && prevPressed.current.r2)) {
+          onAction("emergency_stop");
+        }
+        prevPressed.current.l2 = l2;
+        prevPressed.current.r2 = r2;
       }
+
       rafRef.current = requestAnimationFrame(loop);
     };
 
